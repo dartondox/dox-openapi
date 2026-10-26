@@ -1,11 +1,11 @@
 name: dox_openapi
 description: Generate an OpenAPI 3.1 document (JSON and YAML) for a Dox app, and serve it with a docs page.
 version: 3.0.0-rc.1
-repository: https://github.com/dartondox/dox
+repository: https://github.com/dartondox/dox-openapi
+homepage: https://dartondox.dev
 
 environment:
   sdk: ^3.13.0
-resolution: workspace
 
 dependencies:
   path: ^1.9.1

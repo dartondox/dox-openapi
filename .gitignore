@@ -1,3 +1,5 @@
 .dart_tool/
+.DS_Store
 pubspec.lock
-example/build/
+pubspec_overrides.yaml
+build/
