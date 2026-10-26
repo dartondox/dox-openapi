@@ -1,3 +1,8 @@
+## 3.0.0
+
+- The first stable release.
+- The package now lives in its own repo: [dartondox/dox-openapi](https://github.com/dartondox/dox-openapi). Nothing changes for users: same package name, same API.
+
 ## 3.0.0-rc.1
 
 - Version bump only, to match the other packages.
