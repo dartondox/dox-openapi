@@ -35,6 +35,10 @@ void main() async {
       params: <String, Object>{'id': <String, dynamic>{'type': 'integer'}},
       responses: <int, ResponseDoc>{
         404: const ResponseDoc(description: 'Not found'),
+      },
+      // Text keys like `default` or `2XX` go here.
+      namedResponses: <String, ResponseDoc>{
+        'default': const ResponseDoc(description: 'Any other error'),
       });
 
   OpenApi api = OpenApi(info: const Info(title: 'My API', version: '1.0.0'), docs: docs);
@@ -55,6 +59,7 @@ void main() async {
 - A schema can be a JSON Schema `Map`, a `dox_validation` schema, or any object with `toJsonSchema()`.
 - `DoxRouteAdapter` adds a basic entry for each route you did not describe.
 - Paths with `{id}` or `:id` both become `{id}`.
+- An optional param `{id?}` gives two paths, `/users/{id}` and `/users`, because OpenAPI path params are always required.
 
 ## Documentation
 

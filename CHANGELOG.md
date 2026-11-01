@@ -1,3 +1,8 @@
+## Unreleased
+
+- Fix: an optional route param `{id?}` showed as a required param, so the route without the id was missing from the document. Now `/blog/{id?}` gives two paths: `/blog/{id}` and `/blog`. OpenAPI path params must always be required, so this is the only correct way to show it. Only optional params at the end of the path are dropped, the same way the Dox router matches them. A route that is documented on the shorter path itself still wins.
+- New: `namedResponses` on `RouteDoc` and `ApiDoc.route`. It takes responses with a text key, like `default` or `2XX`. The `responses` map still uses `int` keys and works as before.
+
 ## 3.0.0
 
 - The first stable release.

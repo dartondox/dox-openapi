@@ -132,6 +132,88 @@ void main() {
       );
     });
 
+    test('an optional param gives a path with it and one without it', () {
+      ApiDoc docs = ApiDoc();
+      docs.route(
+        'GET',
+        '/blog/{id?}',
+        params: <String, Object>{
+          'id': <String, dynamic>{'type': 'integer'},
+        },
+      );
+      docs.route('GET', '/named/{id?}', operationId: 'showNamed');
+      Map<String, dynamic> doc = OpenApi(
+        info: const Info(title: 't', version: '1'),
+        docs: docs,
+      ).toJson();
+      expect(checker.check(doc), isEmpty);
+      Map<dynamic, dynamic> paths = doc['paths'] as Map<dynamic, dynamic>;
+      expect(paths.keys, <String>[
+        '/blog/{id}',
+        '/named/{id}',
+        '/blog',
+        '/named',
+      ]);
+      Map<dynamic, dynamic> withId =
+          (paths['/blog/{id}'] as Map<dynamic, dynamic>)['get']
+              as Map<dynamic, dynamic>;
+      expect(withId['operationId'], 'getBlogById');
+      expect(withId['parameters'], <Map<String, dynamic>>[
+        <String, dynamic>{
+          'name': 'id',
+          'in': 'path',
+          'required': true,
+          'schema': <String, dynamic>{'type': 'integer'},
+        },
+      ]);
+      Map<dynamic, dynamic> withoutId =
+          (paths['/blog'] as Map<dynamic, dynamic>)['get']
+              as Map<dynamic, dynamic>;
+      expect(withoutId['operationId'], 'getBlog');
+      expect(withoutId.containsKey('parameters'), isFalse);
+      expect(
+        ((paths['/named'] as Map<dynamic, dynamic>)['get']
+            as Map<dynamic, dynamic>)['operationId'],
+        'showNamedWithoutId',
+      );
+    });
+
+    test('two optional params give unique paths, filled from the left', () {
+      ApiDoc docs = ApiDoc();
+      docs.route('GET', '/a/{x?}/{y?}');
+      Map<String, dynamic> doc = OpenApi(
+        info: const Info(title: 't', version: '1'),
+        docs: docs,
+      ).toJson();
+      expect(checker.check(doc), isEmpty);
+      Iterable<dynamic> keys = (doc['paths'] as Map<dynamic, dynamic>).keys;
+      expect(keys, <String>['/a/{x}/{y}', '/a/{x}', '/a']);
+      // OpenAPI: two paths that differ only in param names are the same
+      // path, and validators reject the document.
+      Set<String> shapes = <String>{};
+      for (dynamic key in keys) {
+        shapes.add('$key'.replaceAll(RegExp(r'\{[^}]+\}'), '{}'));
+      }
+      expect(shapes.length, keys.length);
+    });
+
+    test('a route on the shorter path wins over the optional one', () {
+      ApiDoc docs = ApiDoc();
+      docs.route('GET', '/blog/{id?}', summary: 'one or all');
+      docs.route('GET', '/blog', summary: 'all');
+      Map<dynamic, dynamic> paths =
+          OpenApi(
+                info: const Info(title: 't', version: '1'),
+                docs: docs,
+              ).toJson()['paths']
+              as Map<dynamic, dynamic>;
+      expect(
+        ((paths['/blog'] as Map<dynamic, dynamic>)['get']
+            as Map<dynamic, dynamic>)['summary'],
+        'all',
+      );
+    });
+
     test('groups methods under one path', () {
       Map<dynamic, dynamic> users =
           (buildApi().toJson()['paths'] as Map<dynamic, dynamic>)['/users']

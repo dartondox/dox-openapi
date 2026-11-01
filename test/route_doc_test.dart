@@ -78,6 +78,31 @@ void main() {
       expect(PathConverter.paramNames('/plain'), isEmpty);
     });
 
+    test('reads optional param names', () {
+      expect(PathConverter.optionalParamNames('/a/{x?}/b/{y}/{z?}'), <String>[
+        'x',
+        'z',
+      ]);
+      expect(PathConverter.path('/a/{x?}'), '/a/{x}');
+    });
+
+    test('RouteDoc.paths lists every shape of an optional route', () {
+      expect(RouteDoc(method: 'GET', path: '/a/{x}').paths, <String>['/a/{x}']);
+      expect(RouteDoc(method: 'GET', path: '/{x?}').paths, <String>[
+        '/{x}',
+        '/',
+      ]);
+      expect(RouteDoc(method: 'GET', path: '/a/{x?}/{y?}').paths, <String>[
+        '/a/{x}/{y}',
+        '/a/{x}',
+        '/a',
+      ]);
+      // Only optional params at the end are dropped.
+      expect(RouteDoc(method: 'GET', path: '/a/{x?}/b').paths, <String>[
+        '/a/{x}/b',
+      ]);
+    });
+
     test('checks methods', () {
       expect(PathConverter.method('GET'), 'get');
       expect(PathConverter.isSupportedMethod('PURGE'), isFalse);
@@ -253,6 +278,38 @@ void main() {
       ).toOperation(resolver);
       expect(op['responses'], <String, dynamic>{
         '200': <String, dynamic>{'description': 'Successful response'},
+      });
+    });
+  });
+
+  group('RouteDoc named responses', () {
+    test('adds default and 2XX keys after the int keys', () {
+      ApiDoc docs = ApiDoc();
+      RouteDoc doc = docs.route(
+        'GET',
+        '/x',
+        responses: <int, ResponseDoc>{
+          200: const ResponseDoc(description: 'ok'),
+        },
+        namedResponses: <String, ResponseDoc>{
+          '2XX': const ResponseDoc(description: 'any success'),
+          'default': const ResponseDoc(description: 'error'),
+        },
+      );
+      Map<dynamic, dynamic> responses =
+          doc.toOperation(resolver)['responses'] as Map<dynamic, dynamic>;
+      expect(responses.keys, <String>['200', '2XX', 'default']);
+      expect(responses['default'], <String, dynamic>{'description': 'error'});
+    });
+
+    test('only named responses: no made up 200', () {
+      RouteDoc doc = RouteDoc(
+        method: 'GET',
+        path: '/x',
+        namedResponses: <String, ResponseDoc>{'default': const ResponseDoc()},
+      );
+      expect(doc.toOperation(resolver)['responses'], <String, dynamic>{
+        'default': <String, dynamic>{'description': 'Response'},
       });
     });
   });
