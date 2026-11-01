@@ -2,7 +2,7 @@ name: Release
 
 # Push a tag like v<version> to publish the package to pub.dev.
 # The tag must match the version in pubspec.yaml and be on main.
-# Wait for CI to be green on main before you push the tag.
+# The CI tests run on the tag first. Nothing is published when they fail.
 
 on:
   push:
@@ -12,7 +12,12 @@ permissions:
   contents: read
 
 jobs:
+  # All CI tests must pass on the tag before anything is published.
+  test:
+    uses: ./.github/workflows/ci.yaml
+
   publish:
+    needs: test
     runs-on: ubuntu-latest
     environment: pub.dev
     permissions:
