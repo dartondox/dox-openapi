@@ -279,6 +279,38 @@ void main() {
     });
   });
 
+  group('RouteDoc named responses', () {
+    test('adds default and 2XX keys after the int keys', () {
+      ApiDoc docs = ApiDoc();
+      RouteDoc doc = docs.route(
+        'GET',
+        '/x',
+        responses: <int, ResponseDoc>{
+          200: const ResponseDoc(description: 'ok'),
+        },
+        namedResponses: <String, ResponseDoc>{
+          '2XX': const ResponseDoc(description: 'any success'),
+          'default': const ResponseDoc(description: 'error'),
+        },
+      );
+      Map<dynamic, dynamic> responses =
+          doc.toOperation(resolver)['responses'] as Map<dynamic, dynamic>;
+      expect(responses.keys, <String>['200', '2XX', 'default']);
+      expect(responses['default'], <String, dynamic>{'description': 'error'});
+    });
+
+    test('only named responses: no made up 200', () {
+      RouteDoc doc = RouteDoc(
+        method: 'GET',
+        path: '/x',
+        namedResponses: <String, ResponseDoc>{'default': const ResponseDoc()},
+      );
+      expect(doc.toOperation(resolver)['responses'], <String, dynamic>{
+        'default': <String, dynamic>{'description': 'Response'},
+      });
+    });
+  });
+
   group('ApiDoc', () {
     test('replaces docs for the same route', () {
       ApiDoc docs = ApiDoc();

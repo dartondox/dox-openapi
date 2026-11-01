@@ -67,6 +67,10 @@ class RouteDoc {
   /// Responses by status code.
   final Map<int, ResponseDoc> responses;
 
+  /// Responses with a text key, like `default` or `2XX`.
+  /// They come after [responses]. The same key here wins.
+  final Map<String, ResponseDoc> namedResponses;
+
   /// Security requirements, for example `[{'bearerAuth': []}]`.
   final List<Map<String, List<String>>>? security;
 
@@ -89,6 +93,7 @@ class RouteDoc {
     this.body,
     this.bodyMediaType,
     this.responses = const <int, ResponseDoc>{},
+    this.namedResponses = const <String, ResponseDoc>{},
     this.security,
     this.deprecated = false,
     this.extensions = const <String, dynamic>{},
@@ -257,7 +262,7 @@ class RouteDoc {
   }
 
   Map<String, dynamic> _responses(SchemaResolver resolver) {
-    if (responses.isEmpty) {
+    if (responses.isEmpty && namedResponses.isEmpty) {
       return <String, dynamic>{
         '200': <String, dynamic>{
           'description': OpenApiConstants.defaultResponseDescription,
@@ -267,6 +272,9 @@ class RouteDoc {
     Map<String, dynamic> json = <String, dynamic>{};
     for (MapEntry<int, ResponseDoc> entry in responses.entries) {
       json['${entry.key}'] = entry.value.toJson(resolver);
+    }
+    for (MapEntry<String, ResponseDoc> entry in namedResponses.entries) {
+      json[entry.key] = entry.value.toJson(resolver);
     }
     return json;
   }
