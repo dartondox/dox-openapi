@@ -107,30 +107,28 @@ class RouteDoc {
   /// be shown as one path. Dox matches `/blog/{id?}` with and without the
   /// id, so it gives two paths: `/blog/{id}` and `/blog`.
   List<String> get paths {
-    List<String> variants = <String>[''];
+    List<String> parts = <String>[];
     for (String part in path.split('/')) {
-      if (part.isEmpty) {
-        continue;
+      if (part.isNotEmpty) {
+        parts.add(part);
       }
-      List<String> names = PathConverter.paramNames(part);
-      bool optional =
-          names.length == 1 &&
-          part == '{${names.first}}' &&
-          optionalParams.contains(names.first);
-      List<String> next = <String>[];
-      for (String variant in variants) {
-        next.add('$variant/$part');
-        if (optional) {
-          next.add(variant);
-        }
-      }
-      variants = next;
     }
-    List<String> result = <String>[];
-    for (String variant in variants) {
-      result.add(variant.isEmpty ? '/' : variant);
+    // Only drop optional params from the end. The Dox router fills them
+    // from the left, so `/a/{x?}/{y?}` matches `/a/{x}/{y}`, `/a/{x}` and
+    // `/a`, never `/a/{y}`.
+    List<String> result = <String>[path];
+    while (parts.isNotEmpty && _isOptional(parts.last)) {
+      parts.removeLast();
+      result.add('/${parts.join('/')}');
     }
     return result;
+  }
+
+  bool _isOptional(String part) {
+    List<String> names = PathConverter.paramNames(part);
+    return names.length == 1 &&
+        part == '{${names.first}}' &&
+        optionalParams.contains(names.first);
   }
 
   /// Returns the OpenAPI operation object.

@@ -95,8 +95,11 @@ void main() {
       expect(RouteDoc(method: 'GET', path: '/a/{x?}/{y?}').paths, <String>[
         '/a/{x}/{y}',
         '/a/{x}',
-        '/a/{y}',
         '/a',
+      ]);
+      // Only optional params at the end are dropped.
+      expect(RouteDoc(method: 'GET', path: '/a/{x?}/b').paths, <String>[
+        '/a/{x}/b',
       ]);
     });
 

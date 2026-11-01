@@ -178,6 +178,25 @@ void main() {
       );
     });
 
+    test('two optional params give unique paths, filled from the left', () {
+      ApiDoc docs = ApiDoc();
+      docs.route('GET', '/a/{x?}/{y?}');
+      Map<String, dynamic> doc = OpenApi(
+        info: const Info(title: 't', version: '1'),
+        docs: docs,
+      ).toJson();
+      expect(checker.check(doc), isEmpty);
+      Iterable<dynamic> keys = (doc['paths'] as Map<dynamic, dynamic>).keys;
+      expect(keys, <String>['/a/{x}/{y}', '/a/{x}', '/a']);
+      // OpenAPI: two paths that differ only in param names are the same
+      // path, and validators reject the document.
+      Set<String> shapes = <String>{};
+      for (dynamic key in keys) {
+        shapes.add('$key'.replaceAll(RegExp(r'\{[^}]+\}'), '{}'));
+      }
+      expect(shapes.length, keys.length);
+    });
+
     test('a route on the shorter path wins over the optional one', () {
       ApiDoc docs = ApiDoc();
       docs.route('GET', '/blog/{id?}', summary: 'one or all');
