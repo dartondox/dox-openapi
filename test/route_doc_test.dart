@@ -78,6 +78,28 @@ void main() {
       expect(PathConverter.paramNames('/plain'), isEmpty);
     });
 
+    test('reads optional param names', () {
+      expect(PathConverter.optionalParamNames('/a/{x?}/b/{y}/{z?}'), <String>[
+        'x',
+        'z',
+      ]);
+      expect(PathConverter.path('/a/{x?}'), '/a/{x}');
+    });
+
+    test('RouteDoc.paths lists every shape of an optional route', () {
+      expect(RouteDoc(method: 'GET', path: '/a/{x}').paths, <String>['/a/{x}']);
+      expect(RouteDoc(method: 'GET', path: '/{x?}').paths, <String>[
+        '/{x}',
+        '/',
+      ]);
+      expect(RouteDoc(method: 'GET', path: '/a/{x?}/{y?}').paths, <String>[
+        '/a/{x}/{y}',
+        '/a/{x}',
+        '/a/{y}',
+        '/a',
+      ]);
+    });
+
     test('checks methods', () {
       expect(PathConverter.method('GET'), 'get');
       expect(PathConverter.isSupportedMethod('PURGE'), isFalse);
