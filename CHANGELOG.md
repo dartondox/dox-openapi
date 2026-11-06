@@ -1,6 +1,9 @@
 ## Unreleased
 
-- Fix: an optional route param `{id?}` showed as a required param, so the route without the id was missing from the document. Now `/blog/{id?}` gives two paths: `/blog/{id}` and `/blog`. OpenAPI path params must always be required, so this is the only correct way to show it. Only optional params at the end of the path are dropped, the same way the Dox router matches them. A route that is documented on the shorter path itself still wins.
+- Fix: an optional route param `{id?}` showed as a required param, so the route without the id was missing from the document. Now `/blog/{id?}` gives two paths: `/blog/{id}` and `/blog`. OpenAPI path params must always be required, so this is the only correct way to show it. An optional param in the middle works too: `/a/{x?}/b` gives `/a/{x}/b` and `/a/b`. Optional params next to each other are dropped from the right, the same way the Dox router matches them. A route that is documented on the shorter path itself still wins.
+- The shorter path of an optional route now has its own summary and operation id. Before, `/greet` showed the summary `GET /greet/{name}` and the long id `getGreetByNameWithoutName`. Now it shows `GET /greet` and `getGreet`. This only happens when the summary and id were made from the path. A custom summary stays, and a custom id still gets a `Without<Name>` ending. Operation ids of routes without optional params do not change.
+- New: `paramResponses` on `RouteDoc`. These are answers that only happen when the path has a param, like `404` when no record has the id. The shorter path of an optional route leaves them out when it has no params left.
+- New: `DoxRouteAdapter` puts the `body` of a GET or DELETE route in the query string, like dox_core does. Before, it became a request body, so the query params were missing from the docs. A schema without properties stays a body.
 - New: `namedResponses` on `RouteDoc` and `ApiDoc.route`. It takes responses with a text key, like `default` or `2XX`. The `responses` map still uses `int` keys and works as before.
 
 ## 3.0.0

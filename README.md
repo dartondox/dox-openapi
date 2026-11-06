@@ -57,9 +57,9 @@ void main() async {
 - `OpenApiServer` answers `/docs`, `/openapi.json` and `/openapi.yaml`. It does not need a router.
 - Scalar docs page by default. `DocsUi.swagger` gives Swagger UI.
 - A schema can be a JSON Schema `Map`, a `dox_validation` schema, or any object with `toJsonSchema()`.
-- `DoxRouteAdapter` adds a basic entry for each route you did not describe.
+- `DoxRouteAdapter` adds a basic entry for each route you did not describe. On a GET or DELETE route, a `body` schema with properties becomes query params.
 - Paths with `{id}` or `:id` both become `{id}`.
-- An optional param `{id?}` gives two paths, `/users/{id}` and `/users`, because OpenAPI path params are always required.
+- An optional param `{id?}` gives two paths, `/users/{id}` and `/users`, because OpenAPI path params are always required. This also works for an optional param in the middle: `/a/{x?}/b` gives `/a/{x}/b` and `/a/b`.
 
 ## Documentation
 

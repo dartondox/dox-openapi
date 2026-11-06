@@ -93,9 +93,11 @@ class OpenApi {
 
   Map<String, dynamic> _paths() {
     Map<String, Map<String, dynamic>> paths = <String, Map<String, dynamic>>{};
+    Set<String> ids = <String>{};
     for (RouteDoc route in docs.routes) {
       Map<String, dynamic> item = paths.putIfAbsent(route.path, _emptyPathItem);
       item[route.method] = route.toOperation(docs.resolver);
+      ids.add('${item[route.method]['operationId']}');
     }
     // A route with an optional param also gets its shorter paths. A route
     // that is documented on that exact path wins over them.
@@ -103,7 +105,12 @@ class OpenApi {
       for (String path in route.paths.skip(1)) {
         Map<String, dynamic> item = paths.putIfAbsent(path, _emptyPathItem);
         if (!item.containsKey(route.method)) {
-          item[route.method] = route.toOperation(docs.resolver, forPath: path);
+          item[route.method] = route.toOperation(
+            docs.resolver,
+            forPath: path,
+            usedOperationIds: ids,
+          );
+          ids.add('${item[route.method]['operationId']}');
         }
       }
     }
