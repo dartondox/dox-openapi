@@ -1,5 +1,6 @@
 import 'api_doc.dart';
 import 'route_doc.dart';
+import 'schema_resolver.dart';
 
 /// Adds routes from the Dox router to an [ApiDoc].
 ///
@@ -13,10 +14,15 @@ import 'route_doc.dart';
 /// When a route has `preMiddleware` (dox_core sets it), middleware names
 /// come from it and from the inline middleware before the handler.
 /// When a route has `body` (a schema), it becomes the request body.
+/// On a GET or DELETE route (any method but POST, PUT and PATCH), an
+/// object schema with properties becomes query params instead, like
+/// dox_core does.
 ///
 /// Routes that already have docs are kept as they are. Methods that
 /// OpenAPI does not support (for example `PURGE`) are skipped.
 class DoxRouteAdapter {
+  static const Set<String> _bodyMethods = <String>{'post', 'put', 'patch'};
+
   /// Security to add when a route uses a middleware with this class name.
   /// Example: `{'AuthMiddleware': [{'bearerAuth': []}]}`.
   final Map<String, List<Map<String, List<String>>>> securityByMiddleware;
@@ -42,12 +48,15 @@ class DoxRouteAdapter {
         r.controllers,
         preMiddleware: _read(() => r.preMiddleware),
       );
+      Object? body = _read(() => r.body);
+      bool inQuery = _inQuery(method, body);
       docs.add(
         RouteDoc(
           method: method,
           path: path,
           summary: '${method.toUpperCase()} ${PathConverter.path(path)}',
-          body: _read(() => r.body),
+          query: inQuery ? body : null,
+          body: inQuery ? null : body,
           security: _security(middleware),
           extensions: middleware.isEmpty
               ? const <String, dynamic>{}
@@ -91,6 +100,18 @@ class DoxRouteAdapter {
       return getter();
     } on NoSuchMethodError {
       return null;
+    }
+  }
+
+  /// True when [body] of a [method] route goes in the query string.
+  bool _inQuery(String method, Object? body) {
+    if (body == null || _bodyMethods.contains(method.toLowerCase())) {
+      return false;
+    }
+    try {
+      return const SchemaResolver().resolve(body)['properties'] is Map;
+    } on ArgumentError {
+      return false;
     }
   }
 

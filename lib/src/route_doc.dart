@@ -67,6 +67,12 @@ class RouteDoc {
   /// Responses by status code.
   final Map<int, ResponseDoc> responses;
 
+  /// Responses that only happen when the path has a param, like `404`
+  /// when no record has the id. A shorter path of an optional route (see
+  /// [paths]) that has no params left leaves them out. A status that is
+  /// also in [responses] uses the one in [responses].
+  final Map<int, ResponseDoc> paramResponses;
+
   /// Responses with a text key, like `default` or `2XX`.
   /// They come after [responses]. The same key here wins.
   final Map<String, ResponseDoc> namedResponses;
@@ -93,6 +99,7 @@ class RouteDoc {
     this.body,
     this.bodyMediaType,
     this.responses = const <int, ResponseDoc>{},
+    this.paramResponses = const <int, ResponseDoc>{},
     this.namedResponses = const <String, ResponseDoc>{},
     this.security,
     this.deprecated = false,
@@ -105,23 +112,40 @@ class RouteDoc {
   ///
   /// OpenAPI path params are always required. So an optional param can not
   /// be shown as one path. Dox matches `/blog/{id?}` with and without the
-  /// id, so it gives two paths: `/blog/{id}` and `/blog`.
+  /// id, so it gives two paths: `/blog/{id}` and `/blog`. An optional param
+  /// in the middle works the same: `/a/{x?}/b` gives `/a/{x}/b` and `/a/b`.
   List<String> get paths {
-    List<String> parts = <String>[];
-    for (String part in path.split('/')) {
+    // Optional params next to each other fill from the left, like the Dox
+    // router: `/a/{x?}/{y?}` matches `/a/{x}/{y}`, `/a/{x}` and `/a`,
+    // never `/a/{y}`. So each run keeps 0 or more of its first params.
+    List<List<String>> results = <List<String>>[<String>[]];
+    List<String> run = <String>[];
+    for (String part in <String>[...path.split('/'), '']) {
+      if (_isOptional(part)) {
+        run.add(part);
+        continue;
+      }
+      if (run.isNotEmpty) {
+        List<List<String>> next = <List<String>>[];
+        for (List<String> result in results) {
+          for (int keep = run.length; keep >= 0; keep--) {
+            next.add(<String>[...result, ...run.take(keep)]);
+          }
+        }
+        results = next;
+        run = <String>[];
+      }
       if (part.isNotEmpty) {
-        parts.add(part);
+        for (List<String> result in results) {
+          result.add(part);
+        }
       }
     }
-    // Only drop optional params from the end. The Dox router fills them
-    // from the left, so `/a/{x?}/{y?}` matches `/a/{x}/{y}`, `/a/{x}` and
-    // `/a`, never `/a/{y}`.
-    List<String> result = <String>[path];
-    while (parts.isNotEmpty && _isOptional(parts.last)) {
-      parts.removeLast();
-      result.add('/${parts.join('/')}');
+    List<String> list = <String>[];
+    for (List<String> result in results) {
+      list.add('/${result.join('/')}');
     }
-    return result;
+    return list;
   }
 
   bool _isOptional(String part) {
@@ -134,15 +158,27 @@ class RouteDoc {
   /// Returns the OpenAPI operation object.
   ///
   /// [forPath] is one of [paths]. It defaults to [path]. For a shorter path
-  /// the missing params are left out, and the operation id gets a
-  /// `Without<Name>` ending so it stays unique.
-  Map<String, dynamic> toOperation(SchemaResolver resolver, {String? forPath}) {
+  /// the missing params are left out, and [paramResponses] too when no
+  /// param is left. A made-up summary (`GET /blog/{id}`) and operation id
+  /// (`getBlogById`) follow the shorter path: `GET /blog` and `getBlog`.
+  /// A custom operation id gets a `Without<Name>` ending instead, so it
+  /// stays unique. It does the same when the short id is in
+  /// [usedOperationIds].
+  Map<String, dynamic> toOperation(
+    SchemaResolver resolver, {
+    String? forPath,
+    Set<String> usedOperationIds = const <String>{},
+  }) {
     String target = forPath ?? path;
     Map<String, dynamic> op = <String, dynamic>{};
     _put(op, 'tags', tags.isEmpty ? null : tags);
-    _put(op, 'summary', summary);
+    _put(
+      op,
+      'summary',
+      summary == _summaryFor(path) ? _summaryFor(target) : summary,
+    );
     _put(op, 'description', description);
-    op['operationId'] = _operationId(target);
+    op['operationId'] = _operationId(target, usedOperationIds);
     List<Map<String, dynamic>> parameters = <Map<String, dynamic>>[
       ..._pathParameters(resolver, target),
       ..._queryParameters(resolver),
@@ -160,7 +196,7 @@ class RouteDoc {
         },
       };
     }
-    op['responses'] = _responses(resolver);
+    op['responses'] = _responses(resolver, target.contains('{'));
     _put(op, 'security', security);
     _put(op, 'deprecated', deprecated ? true : null);
     op.addAll(extensions);
@@ -194,10 +230,21 @@ class RouteDoc {
     return false;
   }
 
-  String _operationId(String target) {
-    String? id = operationId;
-    if (id == null) {
-      return PathConverter.operationId(method, target);
+  String _summaryFor(String forPath) {
+    return '${method.toUpperCase()} $forPath';
+  }
+
+  String _operationId(String target, Set<String> used) {
+    String auto = PathConverter.operationId(method, path);
+    String id = operationId ?? auto;
+    if (target == path) {
+      return id;
+    }
+    if (id == auto) {
+      String short = PathConverter.operationId(method, target);
+      if (!used.contains(short)) {
+        return short;
+      }
     }
     List<String> kept = PathConverter.paramNames(target);
     StringBuffer buffer = StringBuffer(id);
@@ -259,8 +306,16 @@ class RouteDoc {
     return list;
   }
 
-  Map<String, dynamic> _responses(SchemaResolver resolver) {
-    if (responses.isEmpty && namedResponses.isEmpty) {
+  Map<String, dynamic> _responses(SchemaResolver resolver, bool hasParams) {
+    Map<int, ResponseDoc> all = <int, ResponseDoc>{...responses};
+    if (hasParams) {
+      for (MapEntry<int, ResponseDoc> entry in paramResponses.entries) {
+        if (!all.containsKey(entry.key)) {
+          all[entry.key] = entry.value;
+        }
+      }
+    }
+    if (all.isEmpty && namedResponses.isEmpty) {
       return <String, dynamic>{
         '200': <String, dynamic>{
           'description': OpenApiConstants.defaultResponseDescription,
@@ -268,7 +323,7 @@ class RouteDoc {
       };
     }
     Map<String, dynamic> json = <String, dynamic>{};
-    for (MapEntry<int, ResponseDoc> entry in responses.entries) {
+    for (MapEntry<int, ResponseDoc> entry in all.entries) {
       json['${entry.key}'] = entry.value.toJson(resolver);
     }
     for (MapEntry<String, ResponseDoc> entry in namedResponses.entries) {

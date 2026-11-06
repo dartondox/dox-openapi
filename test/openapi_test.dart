@@ -197,6 +197,92 @@ void main() {
       expect(shapes.length, keys.length);
     });
 
+    test('an optional param in the middle gives a path without it', () {
+      ApiDoc docs = ApiDoc();
+      docs.route('GET', '/a/{x?}/b');
+      docs.route('GET', '/c/{x?}/d/{y?}');
+      Map<String, dynamic> doc = OpenApi(
+        info: const Info(title: 't', version: '1'),
+        docs: docs,
+      ).toJson();
+      expect(checker.check(doc), isEmpty);
+      Map<dynamic, dynamic> paths = doc['paths'] as Map<dynamic, dynamic>;
+      expect(paths.keys, <String>[
+        '/a/{x}/b',
+        '/c/{x}/d/{y}',
+        '/a/b',
+        '/c/{x}/d',
+        '/c/d/{y}',
+        '/c/d',
+      ]);
+      expect(
+        ((paths['/a/b'] as Map<dynamic, dynamic>)['get']
+            as Map<dynamic, dynamic>)['operationId'],
+        'getAB',
+      );
+    });
+
+    test('a short path gets its own summary, answers and id', () {
+      ApiDoc docs = ApiDoc();
+      // Like dox_core: it always gives a summary and an operation id.
+      docs.add(
+        RouteDoc(
+          method: 'GET',
+          path: '/greet/{name?}',
+          summary: 'GET /greet/{name}',
+          operationId: 'getGreetByName',
+          responses: <int, ResponseDoc>{200: const ResponseDoc()},
+          paramResponses: <int, ResponseDoc>{
+            404: const ResponseDoc(description: 'Not found'),
+          },
+        ),
+      );
+      docs.route('GET', '/hi/{name?}', summary: 'Say hi', operationId: 'sayHi');
+      Map<String, dynamic> doc = OpenApi(
+        info: const Info(title: 't', version: '1'),
+        docs: docs,
+      ).toJson();
+      expect(checker.check(doc), isEmpty);
+      Map<dynamic, dynamic> paths = doc['paths'] as Map<dynamic, dynamic>;
+      Map<dynamic, dynamic> op(String path) {
+        return (paths[path] as Map<dynamic, dynamic>)['get']
+            as Map<dynamic, dynamic>;
+      }
+
+      expect(op('/greet/{name}')['summary'], 'GET /greet/{name}');
+      expect(op('/greet/{name}')['operationId'], 'getGreetByName');
+      expect(
+        (op('/greet/{name}')['responses'] as Map<dynamic, dynamic>).keys,
+        <String>['200', '404'],
+      );
+      expect(op('/greet')['summary'], 'GET /greet');
+      expect(op('/greet')['operationId'], 'getGreet');
+      expect(
+        (op('/greet')['responses'] as Map<dynamic, dynamic>).keys,
+        <String>['200'],
+      );
+      // A custom summary and id stay. The id gets an ending to be unique.
+      expect(op('/hi')['summary'], 'Say hi');
+      expect(op('/hi')['operationId'], 'sayHiWithoutName');
+    });
+
+    test('a short id that is taken falls back to the long form', () {
+      ApiDoc docs = ApiDoc();
+      docs.route('GET', '/blog/{id?}');
+      docs.route('GET', '/other', operationId: 'getBlog');
+      Map<String, dynamic> doc = OpenApi(
+        info: const Info(title: 't', version: '1'),
+        docs: docs,
+      ).toJson();
+      expect(checker.check(doc), isEmpty);
+      expect(
+        (((doc['paths'] as Map<dynamic, dynamic>)['/blog']
+                as Map<dynamic, dynamic>)['get']
+            as Map<dynamic, dynamic>)['operationId'],
+        'getBlogByIdWithoutId',
+      );
+    });
+
     test('a route on the shorter path wins over the optional one', () {
       ApiDoc docs = ApiDoc();
       docs.route('GET', '/blog/{id?}', summary: 'one or all');
@@ -333,6 +419,56 @@ void main() {
         'LogMiddleware',
       ]);
       expect(doc.body, <String, dynamic>{'type': 'object'});
+    });
+
+    test('a GET or DELETE body with properties becomes query params', () {
+      Map<String, dynamic> filter = <String, dynamic>{
+        'type': 'object',
+        'properties': <String, dynamic>{
+          'page': <String, dynamic>{'type': 'integer'},
+        },
+      };
+      ApiDoc docs = ApiDoc();
+      const DoxRouteAdapter().addTo(docs, <Object>[
+        FullRoute('GET', '/posts', <dynamic>[handler], body: filter),
+        FullRoute('DELETE', '/posts', <dynamic>[handler], body: filter),
+        FullRoute('POST', '/posts', <dynamic>[handler], body: filter),
+        // No properties: it can not be query params, so it stays a body.
+        FullRoute(
+          'GET',
+          '/raw',
+          <dynamic>[handler],
+          body: <String, dynamic>{'type': 'object'},
+        ),
+      ]);
+      Map<String, RouteDoc> byKey = <String, RouteDoc>{};
+      for (RouteDoc doc in docs.routes) {
+        byKey['${doc.method} ${doc.path}'] = doc;
+      }
+      for (String key in <String>['get /posts', 'delete /posts']) {
+        expect(byKey[key]!.query, filter);
+        expect(byKey[key]!.body, isNull);
+      }
+      expect(byKey['post /posts']!.body, filter);
+      expect(byKey['post /posts']!.query, isNull);
+      expect(byKey['get /raw']!.body, <String, dynamic>{'type': 'object'});
+      Map<String, dynamic> doc = OpenApi(
+        info: const Info(title: 't', version: '1'),
+        docs: docs,
+      ).toJson();
+      Map<dynamic, dynamic> get =
+          ((doc['paths'] as Map<dynamic, dynamic>)['/posts']
+                  as Map<dynamic, dynamic>)['get']
+              as Map<dynamic, dynamic>;
+      expect(get.containsKey('requestBody'), isFalse);
+      expect(get['parameters'], <Map<String, dynamic>>[
+        <String, dynamic>{
+          'name': 'page',
+          'in': 'query',
+          'required': false,
+          'schema': <String, dynamic>{'type': 'integer'},
+        },
+      ]);
     });
   });
 

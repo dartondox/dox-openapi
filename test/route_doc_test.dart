@@ -97,10 +97,15 @@ void main() {
         '/a/{x}',
         '/a',
       ]);
-      // Only optional params at the end are dropped.
+      // An optional param in the middle is dropped too, like the router.
       expect(RouteDoc(method: 'GET', path: '/a/{x?}/b').paths, <String>[
         '/a/{x}/b',
+        '/a/b',
       ]);
+      expect(
+        RouteDoc(method: 'GET', path: '/a/{x?}/{y?}/b/{z}').paths,
+        <String>['/a/{x}/{y}/b/{z}', '/a/{x}/b/{z}', '/a/b/{z}'],
+      );
     });
 
     test('checks methods', () {
