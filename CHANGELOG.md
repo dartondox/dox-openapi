@@ -1,4 +1,4 @@
-## Unreleased
+## 3.1.0
 
 - Fix: an optional route param `{id?}` showed as a required param, so the route without the id was missing from the document. Now `/blog/{id?}` gives two paths: `/blog/{id}` and `/blog`. OpenAPI path params must always be required, so this is the only correct way to show it. An optional param in the middle works too: `/a/{x?}/b` gives `/a/{x}/b` and `/a/b`. Optional params next to each other are dropped from the right, the same way the Dox router matches them. A route that is documented on the shorter path itself still wins.
 - The shorter path of an optional route now has its own summary and operation id. Before, `/greet` showed the summary `GET /greet/{name}` and the long id `getGreetByNameWithoutName`. Now it shows `GET /greet` and `getGreet`. This only happens when the summary and id were made from the path. A custom summary stays, and a custom id still gets a `Without<Name>` ending. Operation ids of routes without optional params do not change.
