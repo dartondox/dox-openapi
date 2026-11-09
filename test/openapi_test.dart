@@ -283,6 +283,63 @@ void main() {
       );
     });
 
+    test('two short paths with the same id do not depend on order', () {
+      Map<dynamic, dynamic> paths(List<String> order) {
+        ApiDoc docs = ApiDoc();
+        for (String path in order) {
+          docs.route('GET', path);
+        }
+        Map<String, dynamic> doc = OpenApi(
+          info: const Info(title: 't', version: '1'),
+          docs: docs,
+        ).toJson();
+        expect(checker.check(doc), isEmpty);
+        return doc['paths'] as Map<dynamic, dynamic>;
+      }
+
+      String id(Map<dynamic, dynamic> paths, String path) {
+        return '${((paths[path] as Map<dynamic, dynamic>)['get'] as Map<dynamic, dynamic>)['operationId']}';
+      }
+
+      List<String> routes = <String>['/a-b/{x?}', '/a/b/{y?}', '/c/{z?}'];
+      for (List<String> order in <List<String>>[
+        routes,
+        routes.reversed.toList(),
+      ]) {
+        Map<dynamic, dynamic> found = paths(order);
+        expect(id(found, '/a-b'), 'getABByXWithoutX');
+        expect(id(found, '/a/b'), 'getABByYWithoutY');
+        // no clash, so the short id stays
+        expect(id(found, '/c'), 'getC');
+      }
+    });
+
+    test('ApiDoc.route takes paramResponses', () {
+      ApiDoc docs = ApiDoc();
+      docs.route(
+        'GET',
+        '/blog/{id?}',
+        responses: <int, ResponseDoc>{200: const ResponseDoc()},
+        paramResponses: <int, ResponseDoc>{
+          404: const ResponseDoc(description: 'Not found'),
+        },
+      );
+      Map<dynamic, dynamic> paths =
+          OpenApi(
+                info: const Info(title: 't', version: '1'),
+                docs: docs,
+              ).toJson()['paths']
+              as Map<dynamic, dynamic>;
+      Map<dynamic, dynamic> responses(String path) {
+        return ((paths[path] as Map<dynamic, dynamic>)['get']
+                as Map<dynamic, dynamic>)['responses']
+            as Map<dynamic, dynamic>;
+      }
+
+      expect(responses('/blog/{id}').keys, <String>['200', '404']);
+      expect(responses('/blog').keys, <String>['200']);
+    });
+
     test('a route on the shorter path wins over the optional one', () {
       ApiDoc docs = ApiDoc();
       docs.route('GET', '/blog/{id?}', summary: 'one or all');
