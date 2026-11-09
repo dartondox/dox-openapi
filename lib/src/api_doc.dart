@@ -33,7 +33,8 @@ class ApiDoc {
     return Map<String, Object>.unmodifiable(_schemas);
   }
 
-  /// Adds or replaces the docs for one route.
+  /// Adds or replaces the docs for one route. [paramResponses] are left
+  /// out of a shorter path with no params, see [RouteDoc.paramResponses].
   RouteDoc route(
     String method,
     String path, {
@@ -45,6 +46,7 @@ class ApiDoc {
     Object? query,
     Object? body,
     Map<int, ResponseDoc> responses = const <int, ResponseDoc>{},
+    Map<int, ResponseDoc> paramResponses = const <int, ResponseDoc>{},
     Map<String, ResponseDoc> namedResponses = const <String, ResponseDoc>{},
     List<Map<String, List<String>>>? security,
     bool deprecated = false,
@@ -62,6 +64,7 @@ class ApiDoc {
         query: query,
         body: body,
         responses: responses,
+        paramResponses: paramResponses,
         namedResponses: namedResponses,
         security: security,
         deprecated: deprecated,

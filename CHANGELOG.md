@@ -1,3 +1,8 @@
+## Unreleased
+
+- New: `ApiDoc.route()` takes `paramResponses`, like `RouteDoc`. They are left out of a shorter path with no params.
+- Fix: two shorter paths of optional routes could make the same operation id, like `getAB` from `/a-b/{x?}` and `/a/b/{y?}`. The first route got it, so adding a route could rename another one. Now neither gets it: both use the long form, like `getABByXWithoutX`. Ids that do not clash do not change.
+
 ## 3.1.0
 
 - Fix: an optional route param `{id?}` showed as a required param, so the route without the id was missing from the document. Now `/blog/{id?}` gives two paths: `/blog/{id}` and `/blog`. OpenAPI path params must always be required, so this is the only correct way to show it. An optional param in the middle works too: `/a/{x?}/b` gives `/a/{x}/b` and `/a/b`. Optional params next to each other are dropped from the right, the same way the Dox router matches them. A route that is documented on the shorter path itself still wins.

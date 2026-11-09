@@ -99,6 +99,7 @@ class OpenApi {
       item[route.method] = route.toOperation(docs.resolver);
       ids.add('${item[route.method]['operationId']}');
     }
+    ids.addAll(_clashingShortIds());
     // A route with an optional param also gets its shorter paths. A route
     // that is documented on that exact path wins over them.
     for (RouteDoc route in docs.routes) {
@@ -115,6 +116,30 @@ class OpenApi {
       }
     }
     return paths;
+  }
+
+  /// Made-up ids that two or more shorter paths would get, like `getAB`
+  /// from `/a-b/{x?}` and `/a/b/{y?}`. None of them gets it, so the ids do
+  /// not depend on the route order. Ids that do not clash do not change.
+  Set<String> _clashingShortIds() {
+    Set<String> documented = <String>{
+      for (RouteDoc route in docs.routes) '${route.method} ${route.path}',
+    };
+    Map<String, Set<String>> wanted = <String, Set<String>>{};
+    for (RouteDoc route in docs.routes) {
+      String auto = PathConverter.operationId(route.method, route.path);
+      if ((route.operationId ?? auto) != auto) continue;
+      for (String path in route.paths.skip(1)) {
+        String key = '${route.method} $path';
+        if (documented.contains(key)) continue;
+        String id = PathConverter.operationId(route.method, path);
+        (wanted[id] ??= <String>{}).add(key);
+      }
+    }
+    return <String>{
+      for (MapEntry<String, Set<String>> entry in wanted.entries)
+        if (entry.value.length > 1) entry.key,
+    };
   }
 
   Map<String, dynamic> _emptyPathItem() {
