@@ -1,6 +1,7 @@
 ## Unreleased
 
 - Ships an AI agent skill (dox-openapi-guide). Install it in your app with `dart run skills@ get`.
+- Requires Dart 3.14 or newer.
 - New: `ApiDoc.route()` takes `paramResponses`, like `RouteDoc`. They are left out of a shorter path with no params.
 - Fix: two shorter paths of optional routes could make the same operation id, like `getAB` from `/a-b/{x?}` and `/a/b/{y?}`. The first route got it, so adding a route could rename another one. Now neither gets it: both use the long form, like `getABByXWithoutX`. Ids that do not clash do not change. On a clash, the id of the first route changes too: from the short form, like `getAB`, to the long form.
 
