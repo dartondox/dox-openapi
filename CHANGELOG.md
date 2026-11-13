@@ -1,4 +1,4 @@
-## Unreleased
+## 3.2.0
 
 - Ships an AI agent skill (dox-openapi-guide). Install it in your app with `dart run skills@ get`.
 - New: `ApiDoc.route()` takes `paramResponses`, like `RouteDoc`. They are left out of a shorter path with no params.
