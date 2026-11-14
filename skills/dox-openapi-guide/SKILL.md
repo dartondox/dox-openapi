@@ -16,6 +16,10 @@ For use outside Dox only: `dart pub add dox_openapi`.
 
 ## Turn it on in a Dox app
 
+An app made with `dox create` already serves `/docs`, `/openapi.json` and `/openapi.yaml`. These steps are optional for that.
+But the config has no `openApiRegistry` yet, so each route shows only its path and method.
+Do the steps when you want the full docs from your code (annotations, request and response schemas), or when you want to change the title or other options.
+
 1. Run the builder. It writes `lib/generated/openapi.g.dart`.
 
 ```bash
