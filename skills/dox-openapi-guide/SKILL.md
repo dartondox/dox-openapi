@@ -250,7 +250,7 @@ if (!openApi.isEnabled) {
 }
 ```
 
-4. In the `Dockerfile` build stage, after `dox build`: `RUN APP_KEY=00000000000000000000000000000000 /root/.pub-cache/bin/dox openapi:generate docs/openapi`. The app config needs `APP_KEY`. The dummy key is for this step only. Then, in the `RUN` step that lays out `/out`, add `/out/app/docs` to the `mkdir -p` list and add `&& cp -r docs/openapi /out/app/docs/openapi \` to the `&&` chain after the `cp -r build/bundle/. /out/app/` line. The server runs in `/app`.
+4. In the `Dockerfile` build stage, after `dox build`: `RUN APP_KEY=only-for-the-build-not-a-key /root/.pub-cache/bin/dox openapi:generate docs/openapi`. The app config needs `APP_KEY`. The dummy key is for this step only. Then, in the `RUN` step that lays out `/out`, add `/out/app/docs` to the `mkdir -p` list and add `&& cp -r docs/openapi /out/app/docs/openapi \` to the `&&` chain after the `cp -r build/bundle/. /out/app/` line. The server runs in `/app`.
 5. Run the builder again after you add the controller. Start with `APP_ENV=production`.
 
 The routes have no login. Anyone can see every route. Add a middleware to protect them.
