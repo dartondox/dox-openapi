@@ -24,7 +24,7 @@ dart run build_runner build --delete-conflicting-outputs   # or: dox build_runne
 
 Run it again after you change routes, controllers, DTOs or models. `dox build_runner:watch` does it while you work.
 
-2. Make the config in `lib/config/openapi.dart`:
+2. Make the config in `lib/config/openapi.dart`. The import of `generated/openapi.g.dart` shows an error until step 1 has run:
 
 ```dart
 import 'package:dox_core/dox_core.dart';
@@ -45,7 +45,7 @@ AppConfig appConfig = AppConfig(
 );
 ```
 
-4. Start the app and open `http://localhost:3000/docs`.
+4. Start the app and open `http://localhost:3000/docs`. Your `.env` must have `APP_ENV=development`, or `/docs` gives 404.
 
 Routes: `GET /docs` (the page), `GET /openapi.json`, `GET /openapi.yaml`.
 The document is built on the first request, then kept.
@@ -116,7 +116,7 @@ Future<dynamic> login(DoxRequest req) async { ... }
 | `@DoxController(tag: 'Users')` | for a class the builder can not see in a `Route.get(...)` call |
 
 Use `@Response` when the method returns `DoxResponse` or `dynamic`. The builder can not see the body then.
-The `Type` can be a model, `List<User>`, a `@Dto` or a basic type.
+The `Type` can be a model, `List<User>`, a `@Dto`, a `Serializer` or a basic type.
 
 ## What the builder finds on its own (and `///` comments)
 
