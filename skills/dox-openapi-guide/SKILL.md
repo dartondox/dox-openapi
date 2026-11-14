@@ -78,6 +78,23 @@ OpenApiConfig(
 );
 ```
 
+## Turn the docs on in production
+
+`enabled` is `null` by default. Then the docs routes are on only when `APP_ENV` is `development` or `local`.
+With `APP_ENV=production`, or with `APP_ENV` not set, `/docs`, `/openapi.json` and `/openapi.yaml` all give 404.
+
+`enabled: true` turns them on in every environment, also production. `enabled: false` turns them off everywhere.
+
+```dart
+OpenApiConfig openApi = OpenApiConfig(
+  enabled: true,
+  info: Info(title: 'Blog API', version: '1.0.0'),
+  registry: openApiRegistry,
+);
+```
+
+`/docs` has no login. In production anyone can see every route. Only do this for a public API.
+
 ## Describe a route
 
 Put annotations on a controller method. They come from `dox_core`.
@@ -256,7 +273,7 @@ OpenApiResponse? page = server.handle('/docs'); // also /openapi.json, /openapi.
 
 ## Gotchas
 
-- If `APP_ENV` is not set, Dox treats the app as production. `/docs` is off. Set `APP_ENV=development` in `.env` and in CI, or set `enabled: true`.
+- If `APP_ENV` is not set, Dox treats the app as production. `/docs` is off. Set `APP_ENV=development` in `.env` and in CI, or set `enabled: true` (see "Turn the docs on in production").
 - The docs are stale until you run the builder again. A new route with no docs usually means the builder did not run.
 - Two controllers can have a method with the same name, like `index`. Name the class in the route, like `(LinkController c) => c.index`, so the right docs match.
 - Inline closure routes still get a basic entry, with no types.
