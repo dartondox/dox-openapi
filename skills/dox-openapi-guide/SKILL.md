@@ -74,45 +74,26 @@ OpenApiConfig(
 );
 ```
 
-## What the builder finds on its own
+## Describe a route
 
-You write a normal controller. A `///` comment is enough.
+Put annotations on a controller method. They come from `dox_core`.
 
 ```dart
 class BlogController {
-  /// Get one blog
-  ///
-  /// Deleted blogs are not found.
+  @Summary('Get one blog')
+  @Description('Deleted blogs are not found.')
+  @Tags(<String>['Blogs'])
   Future<Blog?> show(DoxRequest req, String id) async {
     return Blog().find(id);
   }
 
-  /// Create a blog
-  Future<Blog> store(CreateBlog body) async { ... }
+  @Summary('Create a blog')
+  @Response(201, Blog, description: 'The new blog')
+  Future<DoxResponse> store(CreateBlog body) async { ... }
 }
 ```
 
-| Docs part | Source |
-| --- | --- |
-| path, method | the live route table |
-| path param types | controller arguments after the first one (`int id` gives `integer`) |
-| tags | class name without `Controller` |
-| operationId | `Class.method` |
-| summary, description | first line, then the rest, of the `///` comment |
-| request | `@Body(T)`, `@Query(T)` or `@Request(T)`; else an argument of a `@Dto` type; else a `req.validate<T>()` call |
-| 200 answer | the return type (`Future<T>` counts as `T`) |
-| `401`, `403` | auth middleware, `Can`, `GuestMiddleware`, `ValidateSignature`, `req.authorize(...)`, `Gate.authorize(...)` |
-| `404` | the path has a `{param}` |
-| `422` | a request class, `req.validate<T>()` or `req.validateSchema(...)` |
-| `500` | every route |
-
-For `POST`, `PUT` and `PATCH` the request is the JSON body. For other methods each field is a query param.
-`@Dto(source: Source.query)` or `Source.body` picks the place by hand.
-A route with `{id?}` gives two paths, `/blog/{id}` and `/blog`.
-
-## Change the docs (optional)
-
-Put these on a controller method. They come from `dox_core`.
+Another example:
 
 ```dart
 @Summary('Log in')
@@ -126,7 +107,7 @@ Future<dynamic> login(DoxRequest req) async { ... }
 
 | Annotation | Effect |
 | --- | --- |
-| `@Summary`, `@Description` | replace the `///` text |
+| `@Summary`, `@Description` | short title and longer text. Default: the `///` comment |
 | `@Tags([...])` | groups, on a method or a class |
 | `@Request(T)`, `@Body(T)`, `@Query(T)` | the request class |
 | `@Response(status, Type, description: '')` | one answer. Add more for more codes |
@@ -135,9 +116,51 @@ Future<dynamic> login(DoxRequest req) async { ... }
 | `@DoxController(tag: 'Users')` | for a class the builder can not see in a `Route.get(...)` call |
 
 Use `@Response` when the method returns `DoxResponse` or `dynamic`. The builder can not see the body then.
-The `Type` can be a model, `List<User>`, a `@Dto`, a `Serializer` or a basic type.
+The `Type` can be a model, `List<User>`, a `@Dto` or a basic type.
 
-### Login schemes
+## What the builder finds on its own (and `///` comments)
+
+Annotations are optional. A normal controller already gets docs. The builder fills in the rest.
+
+```dart
+class BlogController {
+  Future<Blog?> show(DoxRequest req, String id) async {
+    return Blog().find(id);
+  }
+
+  Future<Blog> store(CreateBlog body) async { ... }
+}
+```
+
+| Docs part | Source |
+| --- | --- |
+| path, method | the live route table |
+| path param types | controller arguments after the first one (`int id` gives `integer`) |
+| tags | class name without `Controller` |
+| operationId | `Class.method` |
+| summary | `@Summary`. Else the first line of the `///` comment |
+| description | `@Description`. Else the rest of the `///` comment |
+| request | `@Body(T)`, `@Query(T)` or `@Request(T)`; else an argument of a `@Dto` type; else a `req.validate<T>()` call |
+| 200 answer | the return type (`Future<T>` counts as `T`) |
+| `401`, `403` | auth middleware, `Can`, `GuestMiddleware`, `ValidateSignature`, `req.authorize(...)`, `Gate.authorize(...)` |
+| `404` | the path has a `{param}` |
+| `422` | a request class, `req.validate<T>()` or `req.validateSchema(...)` |
+| `500` | every route |
+
+For `POST`, `PUT` and `PATCH` the request is the JSON body. For other methods each field is a query param.
+`@Dto(source: Source.query)` or `Source.body` picks the place by hand.
+A route with `{id?}` gives two paths, `/blog/{id}` and `/blog`.
+
+A `///` comment on a method also works for the summary and the description. The first line is the summary. The rest is the description. When a method has both, the annotation wins.
+
+```dart
+/// Get one blog
+///
+/// Deleted blogs are not found.
+Future<Blog?> show(DoxRequest req, String id) async { ... }
+```
+
+## Login schemes
 
 Put `@Security` above a middleware class. Every route with it gets the scheme.
 
