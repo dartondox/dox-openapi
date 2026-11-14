@@ -232,6 +232,29 @@ Future<void> main(List<String> args) async {
 }
 ```
 
+## Production setup
+
+`enabled: true` is the quick way. The other way: make the document at build time and serve the files. The URLs stay `/docs`, `/openapi.json`, `/openapi.yaml`.
+
+1. Have `bin/openapi.dart` (see "Write the files").
+2. Add a `DocsController` (`@Inject()`) in `lib/app/http/controllers/docs.controller.dart`. Import `package:dox_openapi/dox_openapi.dart` (`show OpenApiConstants, OpenApiServer`). A new app has `dox_openapi` in `pubspec.yaml`. Else run `dart pub add dox_openapi`.
+   - `page()` returns `OpenApiServer(OpenApi(info: openApi.info), pageTitle: openApi.pageTitle, ui: openApi.ui, scalar: openApi.scalar).docsPage().body` with `ContentType.parse(OpenApiConstants.htmlContentType)`.
+   - `json()` and `yaml()` read `File('docs/openapi/openapi.json')` and `openapi.yaml`. They throw `NotFoundHttpException()` when the file is missing. The content types are `OpenApiConstants.jsonContentType` and `yamlContentType`.
+3. In a router, add the routes only when the live docs are off, so they do not clash in development:
+
+```dart
+if (!openApi.isEnabled) {
+  Route.get('/docs', (DocsController c) => c.page);
+  Route.get('/openapi.json', (DocsController c) => c.json);
+  Route.get('/openapi.yaml', (DocsController c) => c.yaml);
+}
+```
+
+4. In the `Dockerfile` build stage, after `dox build`: `RUN APP_KEY=00000000000000000000000000000000 /root/.pub-cache/bin/dox openapi:generate docs/openapi`. The app config needs `APP_KEY`. The dummy key is for this step only. Then copy `docs/openapi` to `/out/app/docs/openapi`. The server runs in `/app`.
+5. Run the builder again after you add the controller. Start with `APP_ENV=production`.
+
+The routes have no login. Anyone can see every route. Add a middleware to protect them.
+
 ## Without Dox
 
 ```dart
