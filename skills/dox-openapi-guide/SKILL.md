@@ -16,7 +16,7 @@ For use outside Dox only: `dart pub add dox_openapi`.
 
 ## Turn it on in a Dox app
 
-An app made with `dox create` already serves `/docs`, `/openapi.json` and `/openapi.yaml`. These steps are optional for that.
+An app made with `dox create` already serves `/docs`, `/openapi.json` and `/openapi.yaml` while `APP_ENV` is `development` (the template `.env` sets this). These steps are optional for that.
 But the config has no `openApiRegistry` yet, so each route shows only its path and method.
 Do the steps when you want the full docs from your code (annotations, request and response schemas), or when you want to change the title or other options.
 
@@ -236,7 +236,7 @@ Future<void> main(List<String> args) async {
 
 `enabled: true` is the quick way. The other way: make the document at build time and serve the files. The URLs stay `/docs`, `/openapi.json`, `/openapi.yaml`.
 
-1. Have `bin/openapi.dart` (see "Write the files").
+1. You need `lib/config/openapi.dart` (see "Turn it on in a Dox app") and `bin/openapi.dart` (see "Write the files"). An app made with `dox create` has neither file. Make them first.
 2. Add a `DocsController` (`@Inject()`) in `lib/app/http/controllers/docs.controller.dart`. Import `package:dox_openapi/dox_openapi.dart` (`show OpenApiConstants, OpenApiServer`). A new app has `dox_openapi` in `pubspec.yaml`. Else run `dart pub add dox_openapi`.
    - `page()` returns `OpenApiServer(OpenApi(info: openApi.info), pageTitle: openApi.pageTitle, ui: openApi.ui, scalar: openApi.scalar).docsPage().body` with `ContentType.parse(OpenApiConstants.htmlContentType)`.
    - `json()` and `yaml()` read `File('docs/openapi/openapi.json')` and `openapi.yaml`. They throw `NotFoundHttpException()` when the file is missing. The content types are `OpenApiConstants.jsonContentType` and `yamlContentType`.
@@ -250,7 +250,7 @@ if (!openApi.isEnabled) {
 }
 ```
 
-4. In the `Dockerfile` build stage, after `dox build`: `RUN APP_KEY=00000000000000000000000000000000 /root/.pub-cache/bin/dox openapi:generate docs/openapi`. The app config needs `APP_KEY`. The dummy key is for this step only. Then copy `docs/openapi` to `/out/app/docs/openapi`. The server runs in `/app`.
+4. In the `Dockerfile` build stage, after `dox build`: `RUN APP_KEY=00000000000000000000000000000000 /root/.pub-cache/bin/dox openapi:generate docs/openapi`. The app config needs `APP_KEY`. The dummy key is for this step only. Then, in the `RUN` step that lays out `/out`, add `/out/app/docs` to the `mkdir -p` list and add `&& cp -r docs/openapi /out/app/docs/openapi \` to the `&&` chain after the `cp -r build/bundle/. /out/app/` line. The server runs in `/app`.
 5. Run the builder again after you add the controller. Start with `APP_ENV=production`.
 
 The routes have no login. Anyone can see every route. Add a middleware to protect them.
