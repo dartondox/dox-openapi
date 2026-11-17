@@ -1,3 +1,7 @@
+## Unreleased
+
+- Faster docs build for apps with many routes. Before, finding the docs of each route looped over every route call, so 1000 routes took about 2.5 seconds. Now `OpenApiRegistry.find()` uses a lookup table that is built once.
+
 ## 3.2.0
 
 - Ships an AI agent skill (dox-openapi-guide). Install it in your app with `dart run skills@ get`.
