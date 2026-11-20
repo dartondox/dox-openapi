@@ -87,6 +87,8 @@ class RouteDoc {
   final Map<String, dynamic> extensions;
 
   /// Creates route docs. [method] and [path] are normalised.
+  /// Set [colonParams] to false when [path] comes from a Dox route, so a
+  /// `:` in it is not turned into a param (see [PathConverter.path]).
   RouteDoc({
     required String method,
     required String path,
@@ -104,8 +106,9 @@ class RouteDoc {
     this.security,
     this.deprecated = false,
     this.extensions = const <String, dynamic>{},
+    bool colonParams = true,
   }) : method = PathConverter.method(method),
-       path = PathConverter.path(path),
+       path = PathConverter.path(path, colonParams: colonParams),
        optionalParams = PathConverter.optionalParamNames(path);
 
   /// Every OpenAPI path this route matches. The first one is [path].
@@ -347,11 +350,15 @@ class PathConverter {
 
   /// Turns `/users/:id` or `users/{id}/` into `/users/{id}`.
   /// A Dox catch-all param `{path*}` becomes `{path}`.
-  static String path(String input) {
-    String out = input
-        .replaceAllMapped(_colonParam, _toBrace)
-        .replaceAll('*}', '}')
-        .replaceAll('?}', '}');
+  ///
+  /// Set [colonParams] to false for a path from a real Dox route. Dox
+  /// routes use `{id}` for params, so a `:` there is part of the path,
+  /// like `/books:search`, and stays as it is.
+  static String path(String input, {bool colonParams = true}) {
+    String out =
+        (colonParams ? input.replaceAllMapped(_colonParam, _toBrace) : input)
+            .replaceAll('*}', '}')
+            .replaceAll('?}', '}');
     out = out.replaceAll(RegExp(r'/+'), '/');
     out = out.replaceAll(RegExp(r'^/+|/+$'), '');
     return '/$out';

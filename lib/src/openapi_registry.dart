@@ -139,7 +139,8 @@ class OpenApiRegistry {
   }) {
     _RegistryIndex index = _index();
     String method = httpMethod.toUpperCase();
-    String openApiPath = PathConverter.path(path);
+    // A route path comes from Dox, where a `:` is not a param.
+    String openApiPath = PathConverter.path(path, colonParams: false);
     OpenApiRouteBinding? best;
     int bestLength = 0;
     for (_IndexedBinding entry in index.bindingsFor(method, functionName)) {
@@ -254,7 +255,7 @@ class _RegistryIndex {
       String? raw = binding.path;
       _IndexedBinding entry = _IndexedBinding(
         binding,
-        raw == null ? null : PathConverter.path(raw),
+        raw == null ? null : PathConverter.path(raw, colonParams: false),
       );
       _byMethod.putIfAbsent(binding.method, _newBindingList).add(entry);
       int dot = binding.operation.lastIndexOf('.');

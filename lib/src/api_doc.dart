@@ -80,9 +80,13 @@ class ApiDoc {
   }
 
   /// Returns true when docs exist for this method and path.
-  bool has(String method, String path) {
+  /// Set [colonParams] to false for a path from a Dox route.
+  bool has(String method, String path, {bool colonParams = true}) {
     return _routes.containsKey(
-      _key(PathConverter.method(method), PathConverter.path(path)),
+      _key(
+        PathConverter.method(method),
+        PathConverter.path(path, colonParams: colonParams),
+      ),
     );
   }
 

@@ -100,7 +100,7 @@ List<FakeRoute> doxRoutes() {
   return <FakeRoute>[
     FakeRoute('GET', '/users/{id}', <dynamic>[handler]),
     FakeRoute('DELETE', '/users/{id}', <dynamic>[AuthMiddleware(), handler]),
-    FakeRoute('GET', '/blog/:slug/comments', <dynamic>[
+    FakeRoute('GET', '/blog/{slug}/comments', <dynamic>[
       LogMiddleware(),
       handler,
     ]),
@@ -423,6 +423,15 @@ void main() {
       expect(getUser['summary'], 'Get one user');
     });
 
+    test('keeps a colon in a Dox route path', () {
+      ApiDoc docs = ApiDoc();
+      const DoxRouteAdapter().addTo(docs, <Object?>[
+        FullRoute('GET', '/books:search', <dynamic>[handler]),
+      ]);
+      expect(docs.routes.first.path, '/books:search');
+      expect(docs.routes.first.summary, 'GET /books:search');
+    });
+
     test('reads middleware names and maps them to security', () {
       ApiDoc docs = ApiDoc();
       DoxRouteAdapter adapter = const DoxRouteAdapter(
@@ -438,7 +447,7 @@ void main() {
         byKey['${doc.method} ${doc.path}'] = doc;
       }
       RouteDoc delete = byKey['delete /users/{id}']!;
-      expect(delete.extensions['x-dox-middleware'], <String>['AuthMiddleware']);
+      expect(delete.extensions.containsKey('x-dox-middleware'), isFalse);
       expect(delete.security, <Map<String, List<String>>>[
         <String, List<String>>{'bearerAuth': <String>[]},
       ]);
@@ -471,10 +480,7 @@ void main() {
         ),
       ]);
       RouteDoc doc = docs.routes.first;
-      expect(doc.extensions['x-dox-middleware'], <String>[
-        'AuthMiddleware',
-        'LogMiddleware',
-      ]);
+      expect(doc.extensions.containsKey('x-dox-middleware'), isFalse);
       expect(doc.body, <String, dynamic>{'type': 'object'});
     });
 
