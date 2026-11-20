@@ -1,6 +1,6 @@
 ## Unreleased
 
-- Fix: a `:` in a Dox route path became a param. `/books:search` showed as `/books{search}`. Now `DoxRouteAdapter` and `OpenApiRegistry.find()` keep it. `PathConverter.path`, `RouteDoc` and `ApiDoc.has` take a new `colonParams` option (default `true`, so hand-written `:id` paths still work). Pass `colonParams: false` for a path from a real Dox route.
+- Fix: a `:` in a Dox route path became a param. `/books:search` showed as `/books{search}`. Now `DoxRouteAdapter` and `OpenApiRegistry.find()` keep it. `PathConverter.path`, `RouteDoc`, `ApiDoc.route` and `ApiDoc.has` take a new `colonParams` option (default `true`, so hand-written `:id` paths still work). Pass `colonParams: false` for a path from a real Dox route.
 - Change: the spec no longer lists middleware class names. The `x-dox-middleware` extension is gone, because it showed internal class names and which routes have no auth. `middlewareNames()` and `securityByMiddleware` still work.
 - Faster docs build for apps with many routes. Before, finding the docs of each route looped over every route call, so 1000 routes took about 2.5 seconds. Now `OpenApiRegistry.find()` uses a lookup table that is built once.
 

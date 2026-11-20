@@ -423,6 +423,22 @@ void main() {
       expect(getUser['summary'], 'Get one user');
     });
 
+    test('ApiDoc.has and route follow colonParams', () {
+      ApiDoc docs = ApiDoc();
+      docs.route('GET', '/users/:id');
+      expect(docs.has('GET', '/users/{id}', colonParams: false), isTrue);
+      docs.route('GET', '/books:search', colonParams: false);
+      expect(docs.has('GET', '/books:search', colonParams: false), isTrue);
+      expect(docs.has('GET', '/books:search'), isFalse);
+      int added = const DoxRouteAdapter().addTo(docs, <Object?>[
+        FullRoute('GET', '/books:search', <dynamic>[handler]),
+        FullRoute('GET', '/users/{id}', <dynamic>[handler]),
+      ]);
+      expect(added, 0);
+      ApiDoc other = ApiDoc();
+      expect(other.route('GET', '/books:search').path, '/books{search}');
+    });
+
     test('keeps a colon in a Dox route path', () {
       ApiDoc docs = ApiDoc();
       const DoxRouteAdapter().addTo(docs, <Object?>[
