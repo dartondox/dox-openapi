@@ -30,6 +30,35 @@ List<String> request = <String>['DoxRequest'];
 
 void main() {
   group('OpenApiRegistry |', () {
+    test('a colon in a route path is not a param', () {
+      const OpenApiRegistry colon = OpenApiRegistry(
+        operations: <OpenApiOperation>[
+          OpenApiOperation(
+            controller: 'ParamController',
+            method: 'run',
+            argumentTypes: <String>['DoxRequest'],
+          ),
+          OpenApiOperation(
+            controller: 'SearchController',
+            method: 'run',
+            argumentTypes: <String>['DoxRequest'],
+          ),
+        ],
+        routes: <OpenApiRouteBinding>[
+          OpenApiRouteBinding('GET', '/books{search}', 'ParamController.run'),
+          OpenApiRouteBinding('GET', '/books:search', 'SearchController.run'),
+        ],
+      );
+      expect(
+        colon.find('GET', '/books:search', 'run', request)?.id,
+        'SearchController.run',
+      );
+      expect(
+        colon.find('GET', '/books{search}', 'run', request)?.id,
+        'ParamController.run',
+      );
+    });
+
     test('a route call with the same path end wins', () {
       expect(
         registry.find('GET', '/api/blogs', 'index', request)?.id,

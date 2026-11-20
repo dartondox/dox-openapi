@@ -41,9 +41,11 @@ class DoxRouteAdapter {
       dynamic r = route;
       String method = '${r.method}';
       String path = '${r.path}';
-      if (!PathConverter.isSupportedMethod(method) || docs.has(method, path)) {
+      if (!PathConverter.isSupportedMethod(method) ||
+          docs.has(method, path, colonParams: false)) {
         continue;
       }
+      // Names are only used to find the security. They are not in the spec.
       List<String> middleware = middlewareNames(
         r.controllers,
         preMiddleware: _read(() => r.preMiddleware),
@@ -54,13 +56,12 @@ class DoxRouteAdapter {
         RouteDoc(
           method: method,
           path: path,
-          summary: '${method.toUpperCase()} ${PathConverter.path(path)}',
+          colonParams: false,
+          summary:
+              '${method.toUpperCase()} ${PathConverter.path(path, colonParams: false)}',
           query: inQuery ? body : null,
           body: inQuery ? null : body,
           security: _security(middleware),
-          extensions: middleware.isEmpty
-              ? const <String, dynamic>{}
-              : <String, dynamic>{'x-dox-middleware': middleware},
         ),
       );
       added++;

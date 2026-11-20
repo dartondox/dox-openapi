@@ -35,6 +35,8 @@ class ApiDoc {
 
   /// Adds or replaces the docs for one route. [paramResponses] are left
   /// out of a shorter path with no params, see [RouteDoc.paramResponses].
+  /// Set [colonParams] to false when [path] is a Dox route path with a
+  /// literal `:`, like `/books:search`.
   RouteDoc route(
     String method,
     String path, {
@@ -51,6 +53,7 @@ class ApiDoc {
     List<Map<String, List<String>>>? security,
     bool deprecated = false,
     Map<String, dynamic> extensions = const <String, dynamic>{},
+    bool colonParams = true,
   }) {
     return add(
       RouteDoc(
@@ -69,6 +72,7 @@ class ApiDoc {
         security: security,
         deprecated: deprecated,
         extensions: extensions,
+        colonParams: colonParams,
       ),
     );
   }
@@ -80,9 +84,13 @@ class ApiDoc {
   }
 
   /// Returns true when docs exist for this method and path.
-  bool has(String method, String path) {
+  /// Set [colonParams] to false for a path from a Dox route.
+  bool has(String method, String path, {bool colonParams = true}) {
     return _routes.containsKey(
-      _key(PathConverter.method(method), PathConverter.path(path)),
+      _key(
+        PathConverter.method(method),
+        PathConverter.path(path, colonParams: colonParams),
+      ),
     );
   }
 

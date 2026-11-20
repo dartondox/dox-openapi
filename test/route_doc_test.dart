@@ -86,6 +86,22 @@ void main() {
       expect(PathConverter.path('/a/{x?}'), '/a/{x}');
     });
 
+    test('keeps a literal colon when colonParams is false', () {
+      expect(
+        PathConverter.path('/books:search', colonParams: false),
+        '/books:search',
+      );
+      expect(PathConverter.path('/books:search'), '/books{search}');
+      expect(
+        PathConverter.path('/a/{id}:cancel', colonParams: false),
+        '/a/{id}:cancel',
+      );
+      expect(
+        RouteDoc(method: 'get', path: '/books:search', colonParams: false).path,
+        '/books:search',
+      );
+    });
+
     test('RouteDoc.paths lists every shape of an optional route', () {
       expect(RouteDoc(method: 'GET', path: '/a/{x}').paths, <String>['/a/{x}']);
       expect(RouteDoc(method: 'GET', path: '/{x?}').paths, <String>[
