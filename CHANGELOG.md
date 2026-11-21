@@ -1,4 +1,4 @@
-## Unreleased
+## 3.2.1
 
 - Fix: a `:` in a Dox route path became a param. `/books:search` showed as `/books{search}`. Now `DoxRouteAdapter` and `OpenApiRegistry.find()` keep it. `PathConverter.path`, `RouteDoc`, `ApiDoc.route` and `ApiDoc.has` take a new `colonParams` option (default `true`, so hand-written `:id` paths still work). Pass `colonParams: false` for a path from a real Dox route.
 - Change: the spec no longer lists middleware class names. The `x-dox-middleware` extension is gone, because it showed internal class names and which routes have no auth. `middlewareNames()` and `securityByMiddleware` still work.
